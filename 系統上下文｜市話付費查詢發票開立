@@ -1,0 +1,77 @@
+@startuml Basic Sample
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+UpdateRelStyle(black, black)
+LAYOUT_TOP_DOWN()
+'LAYOUT_AS_SKETCH()
+
+title 市話付費查詢發票開立
+
+    Person_Ext(臨櫃客戶,"臨櫃客戶",$tags="customer")
+Enterprise_Boundary(中華電信股份有限公司,"中華電信股份有限公司"){
+
+    ' Person_Ext(臨櫃客戶,"臨櫃客戶",$tags="customer")
+    ' Person(系統管理員, "系統管理員",,$tags="admin")
+    Person(臨櫃人員, "臨櫃人員","臨櫃現場操作IQWS系統，替臨櫃客戶申請市話付費查詢明細，並開立發票的本公司服務人員。",$tags="employee")
+
+    System_Boundary(CCBS客戶帳務整合系統,"CCBS客戶帳務整合系統"){
+        System_Boundary(CCBS電子發票管理系統,"CCBS電子發票管理系統"){
+        Container_Ext(電子發票開立服務, "電子發票開立服務","","以服務據點代碼，提供發票號碼開立服務，以及接收以實體形式開立後的發票資訊回傳。", "")
+        }        
+        System_Boundary(IQWS應收話費暨通話明細查詢系統,"IQWS應收話費暨通話明細查詢系統","根據條件查詢市話詳細明細，並根據總查詢天數計算應繳費用。"){
+            Container(市話付費查詢服務, "市話付費查詢服務","","根據條件查詢市話詳細明細，並根據總查詢天數計算應繳費用。")
+            System_Boundary(市話付費查詢發票開立, "市話付費查詢發票開立") {
+            Container(電子發票管理, "電子發票管理", "Java/SpringBoot", "開立內容確認,核銷回報,已開立管理,列印檔產製,資訊回報")
+            ContainerDb(db, "Database", "", "發票記錄")
+            }   
+        }
+        System_Boundary(POS臨櫃收付系統,"POS臨櫃收付系統"){
+        Container_Ext(發票核銷服務, "發票核銷服務","","負責確認實體發票核銷，並在核銷流程中索取三大事業體群識別。", "")
+        }
+        
+    }
+        
+    System_Boundary(SPIP臨櫃服務整合系統,"SPIP臨櫃服務整合系統"){
+        Container_Ext(據點代碼查詢服務, "據點代碼查詢服務","",提供臨櫃人員資訊與服務據點代碼的對映清單。", "")
+    }    
+
+    System_Boundary(BOSS數分業務營運系統,"BOSS數分業務營運系統"){
+        Container_Ext(電子發票小平台, "電子發票小平台","","彙整全公司電子發票資訊後，上傳到財政部電子發票平台。", "")
+    }    
+
+    System_Boundary(BCRM企業客戶關係管理系統,"BCRM企業客戶關係管理系統"){
+        Container_Ext(事業體群識別查詢服務, "事業體群識別查詢服務","","以客戶資訊中的證號，協助提供客戶所屬三大事業體群識別的查詢服務。","")
+    } 
+
+
+
+    Lay_U(市話付費查詢服務,臨櫃人員)
+    Lay_D(電子發票開立服務,SPIP臨櫃服務整合系統)
+    Lay_D(電子發票開立服務,BOSS數分業務營運系統)
+    Lay_D(電子發票開立服務,BCRM企業客戶關係管理系統)
+
+    
+    BiRel_R(臨櫃客戶,臨櫃人員,"申請", "","服務")
+    BiRel_R(臨櫃客戶,臨櫃人員,"繳費", "","現金")
+    BiRel_R(臨櫃客戶,臨櫃人員,"取得", "","發票")
+
+    BiRel_D(臨櫃人員,市話付費查詢服務,"受理", "Browser/HTTPS","")
+    BiRel_D(臨櫃人員,發票核銷服務,"核銷", "Browser/HTTPS","")
+
+    Rel(市話付費查詢服務,市話付費查詢服務,"計算", "","")
+    Rel(市話付費查詢服務,電子發票管理,"呼叫", "HTTPS","應繳費用")
+    BiRel(電子發票管理,電子發票開立服務,"取得", "SOAP/HTTPS","發票號碼")
+    
+    BiRel_L(電子發票管理,db,"Read/Write", "","")
+    Rel(電子發票管理,電子發票小平台,"回報", "sFTP","電子發票存入載具及捐贈開立項目")
+    Rel(電子發票管理,電子發票開立服務,"回報", "SOAP/HTTPS","實體發票開立項目")
+
+    Rel_L(據點代碼查詢服務,電子發票管理,"取得", "sFTP","服務據點代碼")
+    BiRel_R(事業體群識別查詢服務,電子發票管理,"取得", "SOAP/HTTPS","事業體群識別")
+
+
+}
+
+SHOW_LEGEND()
+
+@enduml
